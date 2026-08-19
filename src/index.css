@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette: #000000, #1F150C, #412D15, #E1DCC9 */
+  --color-brand-black: #000000;
+  --color-brand-dark: #1F150C;   /* dark espresso brown */
+  --color-brand-mid: #412D15;    /* deep warm bronze brown */
+  --color-brand-light: #E1DCC9;  /* soft cream / beige */
+  --color-brand-cream: #E1DCC9;  /* warm sand off-white */
+  --color-text-base: #000000;
+  --font-sans: 'Roboto', ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900 antialiased transition-colors duration-200;
+    font-family: 'Roboto', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom Scrollbar Styles */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(65, 45, 21, 0.4);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(31, 21, 12, 0.7);
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes heroProgress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-hero-progress {
+  animation: heroProgress linear forwards;
+}
+
