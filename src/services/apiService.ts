@@ -7,6 +7,10 @@ const WISHLIST_STORAGE_KEY = 'trendify_wishlist';
 const ORDERS_STORAGE_KEY = 'trendify_orders';
 const USER_STORAGE_KEY = 'trendify_user';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const IS_DEV = import.meta.env.DEV;
+const ALLOW_MOCK_FALLBACK = IS_DEV && import.meta.env.VITE_ENABLE_MOCK_DATA === 'true';
+
 export class ApiService {
   // --- Products ---
   static async getProducts(params?: {
@@ -16,6 +20,54 @@ export class ApiService {
     flashSaleOnly?: boolean;
     bestDealsOnly?: boolean;
   }): Promise<Product[]> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.category) queryParams.append('category', params.category);
+      if (params?.search) queryParams.append('search', params.search);
+      if (params?.sort) queryParams.append('sort', params.sort);
+      if (params?.flashSaleOnly) queryParams.append('flashSaleOnly', 'true');
+      if (params?.bestDealsOnly) queryParams.append('bestDealsOnly', 'true');
+
+      const response = await fetch(`${API_BASE_URL}/products?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: Product[] = await response.json();
+      return data;
+    } catch (error) {
+      if (ALLOW_MOCK_FALLBACK) {
+        console.warn('⚠️ Server offline or unreachable. Falling back to development mock data.', error);
+        return ApiService.getMockProducts(params);
+      }
+      throw error;
+    }
+  }
+
+  static async getProductBySlug(slug: string): Promise<Product | undefined> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(slug)}`);
+      if (!response.ok) {
+        if (response.status === 404) return undefined;
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      if (ALLOW_MOCK_FALLBACK) {
+        console.warn(`⚠️ Server offline. Falling back to development mock data for slug: ${slug}`);
+        return MOCK_PRODUCTS.find((p) => p.slug === slug || p.id === slug);
+      }
+      throw error;
+    }
+  }
+
+  // --- Development Mock Data Helper ---
+  private static getMockProducts(params?: {
+    category?: string;
+    search?: string;
+    sort?: 'popular' | 'price-low' | 'price-high' | 'rating' | 'newest';
+    flashSaleOnly?: boolean;
+    bestDealsOnly?: boolean;
+  }): Product[] {
     let result = [...MOCK_PRODUCTS];
 
     if (params?.category && params.category !== 'all') {
@@ -66,10 +118,6 @@ export class ApiService {
     }
 
     return result;
-  }
-
-  static async getProductBySlug(slug: string): Promise<Product | undefined> {
-    return MOCK_PRODUCTS.find((p) => p.slug === slug || p.id === slug);
   }
 
   // --- Cart ---
