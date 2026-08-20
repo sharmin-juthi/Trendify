@@ -170,11 +170,34 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [theme]);
 
+  // Sync browser back/forward navigation arrows
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.view) {
+        setActiveView(event.state.view);
+        if (event.state.categorySlug) setSelectedCategory(event.state.categorySlug);
+        if (event.state.query !== undefined) setSearchQuery(event.state.query);
+      } else {
+        setActiveView('home');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Navigation Helper
   const navigateTo = (view: ViewType, categorySlug?: string, query?: string) => {
     setActiveView(view);
     if (categorySlug) setSelectedCategory(categorySlug);
     if (query !== undefined) setSearchQuery(query);
+    
+    try {
+      window.history.pushState({ view, categorySlug, query }, '', `#/${view}`);
+    } catch {
+      // ignore
+    }
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

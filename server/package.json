@@ -4,11 +4,11 @@
   "description": "Node.js Express + MongoDB Backend API for Trendify E-Commerce",
   "main": "dist/server.js",
   "scripts": {
-  "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-  "build": "tsc",
-  "start": "node dist/server.ts.js",
-  "seed": "ts-node src/scripts/seed.ts"
-},
+    "dev": "nodemon --watch src --exec ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "seed": "ts-node src/scripts/seed.ts"
+  },
   "keywords": ["express", "mongodb", "mongoose", "ecommerce", "trendify"],
   "author": "",
   "license": "ISC",
