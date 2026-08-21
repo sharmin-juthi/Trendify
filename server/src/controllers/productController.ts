@@ -64,9 +64,10 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 
 export const getProductBySlug = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { slug } = req.params;
+    const slugParam = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
+    const isObjectId = typeof slugParam === 'string' && /^[0-9a-fA-F]{24}$/.test(slugParam);
     const product = await Product.findOne({
-      $or: [{ slug }, { _id: slug.match(/^[0-9a-fA-F]{24}$/) ? slug : null }]
+      $or: [{ slug: slugParam }, { _id: isObjectId ? slugParam : null }]
     });
 
     if (!product) {
