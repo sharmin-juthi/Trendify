@@ -109,17 +109,18 @@ export const AuthModal: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400">Password</label>
+            <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400">Password (min 6 characters)</label>
             <div className="relative">
               <input
                 type="password"
                 required
+                minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-xs font-bold text-gray-900 dark:text-gray-100 rounded-xl border border-gray-200 dark:border-gray-700 outline-none focus:border-[#412D15]"
               />
-              <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              <Lock className="w-4 h-4 text-gray-400 absolute left-[#0.75rem] top-[#0.75rem]" />
             </div>
           </div>
 

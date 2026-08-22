@@ -280,14 +280,14 @@ export class ApiService {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+        throw new Error(data.message || data.error || 'Login failed');
       }
       if (data.token) {
         ApiService.saveAuthToken(data.token);
       }
       return data;
-    } catch (error) {
-      if (ALLOW_MOCK_FALLBACK) {
+    } catch (error: any) {
+      if (ALLOW_MOCK_FALLBACK && (error.name === 'TypeError' || error.message?.includes('fetch'))) {
         console.warn('⚠️ Login API unreachable or offline. Falling back to local state mock user.');
         const mockUser: User = { ...MOCK_USER, email, name: email.split('@')[0] };
         return { user: mockUser, token: 'mock-jwt-token-dev' };
@@ -305,14 +305,14 @@ export class ApiService {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        throw new Error(data.message || data.error || 'Registration failed');
       }
       if (data.token) {
         ApiService.saveAuthToken(data.token);
       }
       return data;
-    } catch (error) {
-      if (ALLOW_MOCK_FALLBACK) {
+    } catch (error: any) {
+      if (ALLOW_MOCK_FALLBACK && (error.name === 'TypeError' || error.message?.includes('fetch'))) {
         console.warn('⚠️ Register API unreachable. Falling back to local state mock user.');
         const mockUser: User = { ...MOCK_USER, name, email };
         return { user: mockUser, token: 'mock-jwt-token-dev' };
