@@ -57,12 +57,12 @@ export const CheckoutModal: React.FC = () => {
     }
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     const selectedAddress =
       user.addresses.find((a) => a.id === selectedAddressId) || user.addresses[0];
     if (!selectedAddress) return;
 
-    placeOrder(selectedAddress, paymentMethod);
+    await placeOrder(selectedAddress, paymentMethod);
   };
 
   return (

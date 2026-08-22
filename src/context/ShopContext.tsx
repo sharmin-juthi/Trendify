@@ -76,8 +76,10 @@ interface ShopContextType {
   // User & Orders State
   user: User;
   orders: Order[];
-  login: (email: string, name?: string) => void;
-  placeOrder: (shippingAddress: Address, paymentMethod: string) => Order | null;
+  login: (email: string, password?: string, name?: string) => Promise<boolean>;
+  registerAccount: (name: string, email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  placeOrder: (shippingAddress: Address, paymentMethod: string) => Promise<Order | null>;
   addAddress: (address: Omit<Address, 'id'>) => void;
 
   // Theme State
@@ -341,10 +343,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Checkout & Order Placement
-  const placeOrder = (shippingAddress: Address, paymentMethod: string): Order | null => {
+  const placeOrder = async (shippingAddress: Address, paymentMethod: string): Promise<Order | null> => {
     if (cart.length === 0) return null;
 
-    const newOrder = ApiService.createOrder(
+    const newOrder = await ApiService.postOrderToServer(
       user.id,
       cart,
       shippingAddress,
@@ -362,17 +364,63 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newOrder;
   };
 
-  const login = (email: string, name?: string) => {
-    setUser((prev) => {
-      const updated: User = {
-        ...prev,
-        email,
-        name: name || email.split('@')[0]
+  const login = async (email: string, password?: string, name?: string): Promise<boolean> => {
+    try {
+      if (password) {
+        const { user: apiUser } = await ApiService.loginUser(email, password);
+        const formattedUser: User = {
+          id: (apiUser as any)._id || apiUser.id || user.id,
+          name: apiUser.name || name || email.split('@')[0],
+          email: apiUser.email || email,
+          avatarUrl: (apiUser as any).avatarUrl || (apiUser as any).avatar,
+          addresses: apiUser.addresses || [],
+          wishlist: apiUser.wishlist || []
+        };
+        setUser(formattedUser);
+        ApiService.saveLocalUser(formattedUser);
+        showToast(`Welcome back, ${formattedUser.name}!`);
+        return true;
+      } else {
+        const updated: User = {
+          ...user,
+          email,
+          name: name || email.split('@')[0]
+        };
+        setUser(updated);
+        ApiService.saveLocalUser(updated);
+        showToast(`Signed in as ${email}`);
+        return true;
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Login failed');
+      return false;
+    }
+  };
+
+  const registerAccount = async (name: string, email: string, password: string): Promise<boolean> => {
+    try {
+      const { user: apiUser } = await ApiService.registerUser(name, email, password);
+      const formattedUser: User = {
+        id: (apiUser as any)._id || apiUser.id || user.id,
+        name: apiUser.name || name,
+        email: apiUser.email || email,
+        avatarUrl: (apiUser as any).avatarUrl || (apiUser as any).avatar,
+        addresses: apiUser.addresses || [],
+        wishlist: apiUser.wishlist || []
       };
-      ApiService.saveLocalUser(updated);
-      return updated;
-    });
-    showToast(`Signed in as ${email}`);
+      setUser(formattedUser);
+      ApiService.saveLocalUser(formattedUser);
+      showToast(`Account created for ${formattedUser.name}!`);
+      return true;
+    } catch (err: any) {
+      showToast(err.message || 'Registration failed');
+      return false;
+    }
+  };
+
+  const logout = () => {
+    ApiService.removeAuthToken();
+    showToast('Signed out successfully');
   };
 
   const addAddress = (newAddr: Omit<Address, 'id'>) => {
@@ -447,6 +495,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         orders,
         login,
+        registerAccount,
+        logout,
         placeOrder,
         addAddress,
 

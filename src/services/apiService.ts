@@ -258,6 +258,69 @@ export class ApiService {
     return newOrder;
   }
 
+  // --- Auth & Token Management ---
+  static getAuthToken(): string | null {
+    return localStorage.getItem('trendify_auth_token');
+  }
+
+  static saveAuthToken(token: string): void {
+    localStorage.setItem('trendify_auth_token', token);
+  }
+
+  static removeAuthToken(): void {
+    localStorage.removeItem('trendify_auth_token');
+  }
+
+  static async loginUser(email: string, password: string): Promise<{ user: User; token: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+      if (data.token) {
+        ApiService.saveAuthToken(data.token);
+      }
+      return data;
+    } catch (error) {
+      if (ALLOW_MOCK_FALLBACK) {
+        console.warn('⚠️ Login API unreachable or offline. Falling back to local state mock user.');
+        const mockUser: User = { ...MOCK_USER, email, name: email.split('@')[0] };
+        return { user: mockUser, token: 'mock-jwt-token-dev' };
+      }
+      throw error;
+    }
+  }
+
+  static async registerUser(name: string, email: string, password: string): Promise<{ user: User; token: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+      if (data.token) {
+        ApiService.saveAuthToken(data.token);
+      }
+      return data;
+    } catch (error) {
+      if (ALLOW_MOCK_FALLBACK) {
+        console.warn('⚠️ Register API unreachable. Falling back to local state mock user.');
+        const mockUser: User = { ...MOCK_USER, name, email };
+        return { user: mockUser, token: 'mock-jwt-token-dev' };
+      }
+      throw error;
+    }
+  }
+
   // --- Auth / Profile ---
   static getLocalUser(): User {
     try {
@@ -284,4 +347,50 @@ export class ApiService {
       console.error('Failed to save user', e);
     }
   }
+
+  static async postOrderToServer(
+    userId: string,
+    items: CartItem[],
+    shippingAddress: Address,
+    paymentMethod: string,
+    appliedCoupon?: Coupon
+  ): Promise<Order> {
+    const token = ApiService.getAuthToken();
+    const localOrder = ApiService.createOrder(userId, items, shippingAddress, paymentMethod, appliedCoupon);
+
+    if (!token) return localOrder;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId,
+          items: localOrder.items,
+          shippingAddress: localOrder.shippingAddress,
+          paymentMethod: localOrder.paymentMethod,
+          subtotal: localOrder.subtotal,
+          discount: localOrder.discount,
+          shippingFee: localOrder.shippingFee,
+          total: localOrder.total
+        })
+      });
+
+      if (response.ok) {
+        const createdOrder = await response.json();
+        return {
+          ...localOrder,
+          id: createdOrder._id || createdOrder.orderNumber || localOrder.id
+        };
+      }
+    } catch (err) {
+      console.warn('⚠️ Server order creation fallback to local persistence:', err);
+    }
+
+    return localOrder;
+  }
 }
+

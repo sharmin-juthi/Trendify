@@ -1,23 +1,43 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
+import { X, Mail, Lock, User as UserIcon, ArrowRight, Loader2 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, login } = useShop();
-
-  if (!isAuthModalOpen) return null;
+  const { isAuthModalOpen, setIsAuthModalOpen, login, registerAccount } = useShop();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  if (!isAuthModalOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      login(email.trim(), name.trim() || undefined);
+    setErrorMessage(null);
+    setLoading(true);
+
+    try {
+      let success = false;
+      if (mode === 'login') {
+        success = await login(email.trim(), password, name.trim() || undefined);
+      } else {
+        success = await registerAccount(name.trim(), email.trim(), password);
+      }
+
+      if (success) {
+        setIsAuthModalOpen(false);
+        setEmail('');
+        setPassword('');
+        setName('');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setIsAuthModalOpen(false);
   };
 
   return (
@@ -47,6 +67,12 @@ export const AuthModal: React.FC = () => {
               : 'Create an account to unlock 10% off your first order'}
           </p>
         </div>
+
+        {errorMessage && (
+          <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 text-center">
+            {errorMessage}
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,10 +125,17 @@ export const AuthModal: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-3.5 bg-[#412D15] hover:bg-[#1F150C] text-[#E1DCC9] rounded-2xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#412D15]/25 transition-all"
+            disabled={loading}
+            className="w-full py-3.5 bg-[#412D15] hover:bg-[#1F150C] disabled:opacity-50 text-[#E1DCC9] rounded-2xl font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#412D15]/25 transition-all"
           >
-            <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
-            <ArrowRight className="w-4 h-4" />
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
 
@@ -111,7 +144,10 @@ export const AuthModal: React.FC = () => {
           <p className="text-xs text-gray-400 font-medium">
             {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
             <button
-              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+              onClick={() => {
+                setErrorMessage(null);
+                setMode(mode === 'login' ? 'register' : 'login');
+              }}
               className="font-bold text-[#412D15] dark:text-[#E1DCC9] hover:underline"
             >
               {mode === 'login' ? 'Sign Up' : 'Log In'}
@@ -122,3 +158,4 @@ export const AuthModal: React.FC = () => {
     </div>
   );
 };
+
